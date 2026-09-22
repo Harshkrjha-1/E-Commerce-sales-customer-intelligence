@@ -9,10 +9,11 @@
 
 This entire application is configured to deploy as a **Single Vercel Project** serving both the **React + Vite Frontend** and the **FastAPI Serverless Python Backend** under one unified domain.
 
-- **Vercel Project**: Single Monorepo Deployment
-- **Frontend Domain**: `https://YOUR-PROJECT.vercel.app/`
-- **Backend API Domain**: `https://YOUR-PROJECT.vercel.app/api/...`
-- **Zero External Backend / Zero Render Dependency**: Same-origin REST API calls natively served via Vercel `@vercel/python` serverless function (`api/index.py`).
+- **Vercel Project:** Single Monorepo Deployment
+- **Frontend Domain:** `https://e-commerce-sales-customer-intellige.vercel.app/`
+- **Backend API Domain:** `https://e-commerce-sales-customer-intellige.vercel.app/api`
+- **Health Check:** `https://e-commerce-sales-customer-intellige.vercel.app/api/health`
+- **Zero External Backend / Zero Render Dependency:** FastAPI backend and React frontend are deployed under the same Vercel domain using same-origin REST API calls.
 
 ---
 
@@ -189,26 +190,20 @@ vercel
 
 ---
 
-## ⚡ Local Development & Testing
+## ⚡ Deployed Application & API
 
-### 1. Test Backend APIs Locally
-```bash
-pytest tests/test_api.py
-```
+### 1. Production Backend API
 
-### 2. Launch Local FastAPI Server
-```bash
-uvicorn backend.main:app --host 127.0.0.1 --port 8000
-```
-Swagger UI available at `http://127.0.0.1:8000/docs`.
+Production API available at `https://e-commerce-sales-customer-intellige.vercel.app/api`.
 
-### 3. Launch Local React Frontend
-```bash
-cd frontend
-npm install
-npm run dev
-```
+### 2. Production FastAPI Server
+
+Backend health check available at `https://e-commerce-sales-customer-intellige.vercel.app/api/health`.
+
+### 3. Production React Frontend
+
 Dashboard available at `https://e-commerce-sales-customer-intellige.vercel.app/`.
+
 
 ---
 
