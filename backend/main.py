@@ -1,6 +1,7 @@
 """
 main.py
 FastAPI Web Application Server for Olist Brazilian E-Commerce Analytics Platform
+Serves both REST API (/api/*) and React SPA Frontend (/)
 """
 
 import os
@@ -17,6 +18,8 @@ if BASE_DIR not in sys.path:
 
 from fastapi import FastAPI, APIRouter, Depends, Query, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse, HTMLResponse
+from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 
@@ -345,3 +348,26 @@ def get_data_quality_report():
 # Include router for both root and /api prefixes so Vercel function matching never fails
 app.include_router(router)
 app.include_router(router, prefix="/api")
+
+# Serve React static assets from frontend/dist
+DIST_DIR = os.path.join(BASE_DIR, "frontend", "dist")
+ASSETS_DIR = os.path.join(DIST_DIR, "assets")
+
+if os.path.exists(ASSETS_DIR):
+    app.mount("/assets", StaticFiles(directory=ASSETS_DIR), name="assets")
+
+# Catch-all route to serve React SPA index.html or static root files
+@app.get("/{full_path:path}", include_in_schema=False)
+def serve_frontend_spa(full_path: str):
+    if full_path.startswith("api/"):
+        raise HTTPException(status_code=404, detail="API endpoint not found")
+        
+    target_file = os.path.join(DIST_DIR, full_path)
+    if os.path.isfile(target_file):
+        return FileResponse(target_file)
+        
+    index_file = os.path.join(DIST_DIR, "index.html")
+    if os.path.exists(index_file):
+        return FileResponse(index_file)
+        
+    return HTMLResponse("<html><body><h2>Olist E-Commerce Analytics Platform</h2><p>Frontend is building...</p></body></html>")
