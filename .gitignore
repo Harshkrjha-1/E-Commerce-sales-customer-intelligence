@@ -1,0 +1,23 @@
+# Python
+.env
+.venv
+venv/
+__pycache__/
+*.py[cod]
+*$py.class
+.ipynb_checkpoints
+
+# Data & Models
+data/raw/*
+!data/raw/.gitkeep
+models/*.pkl
+!models/.gitkeep
+
+# Node / Frontend
+node_modules/
+frontend/dist/
+frontend/node_modules/
+.DS_Store
+
+# SQLite local DB
+*.db

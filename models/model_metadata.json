@@ -1,0 +1,108 @@
+{
+  "model_name": "LogisticRegression (Customer Inactivity & Churn Risk Predictor)",
+  "training_period": "Historical snapshot up to 2018-03-01",
+  "target_definition": "1 if customer placed NO orders in the 180 days post-snapshot, 0 if customer purchased again",
+  "primary_model_metrics": {
+    "accuracy": 0.628,
+    "precision": 0.9905,
+    "recall": 0.6296,
+    "f1": 0.7699,
+    "roc_auc": 0.5829,
+    "confusion_matrix": [
+      [
+        82,
+        84
+      ],
+      [
+        5138,
+        8735
+      ]
+    ]
+  },
+  "comparison_model_metrics": {
+    "accuracy": 0.8808,
+    "precision": 0.9889,
+    "recall": 0.8894,
+    "f1": 0.9365,
+    "roc_auc": 0.5246,
+    "confusion_matrix": [
+      [
+        27,
+        139
+      ],
+      [
+        1535,
+        12338
+      ]
+    ]
+  },
+  "feature_list": [
+    "recency_days",
+    "frequency",
+    "monetary_value",
+    "avg_order_value",
+    "total_items",
+    "review_score",
+    "delivery_days",
+    "delayed_orders_count",
+    "preferred_payment_method_boleto",
+    "preferred_payment_method_credit_card",
+    "preferred_payment_method_debit_card",
+    "preferred_payment_method_voucher"
+  ],
+  "feature_coefficients": [
+    {
+      "feature": "preferred_payment_method_debit_card",
+      "coefficient": 0.5425
+    },
+    {
+      "feature": "avg_order_value",
+      "coefficient": 0.4374
+    },
+    {
+      "feature": "monetary_value",
+      "coefficient": -0.254
+    },
+    {
+      "feature": "recency_days",
+      "coefficient": 0.2245
+    },
+    {
+      "feature": "preferred_payment_method_credit_card",
+      "coefficient": -0.2237
+    },
+    {
+      "feature": "total_items",
+      "coefficient": -0.2007
+    },
+    {
+      "feature": "delivery_days",
+      "coefficient": 0.1189
+    },
+    {
+      "feature": "frequency",
+      "coefficient": -0.1123
+    },
+    {
+      "feature": "review_score",
+      "coefficient": -0.1078
+    },
+    {
+      "feature": "preferred_payment_method_voucher",
+      "coefficient": -0.0707
+    },
+    {
+      "feature": "delayed_orders_count",
+      "coefficient": -0.0676
+    },
+    {
+      "feature": "preferred_payment_method_boleto",
+      "coefficient": 0.0217
+    }
+  ],
+  "limitations": [
+    "Dataset represents cross-sectional historical ecommerce snapshot (2016-2018).",
+    "High proportion of single-purchase customers in initial Olist data.",
+    "Model optimized for recall of high-risk customers under class-balanced threshold."
+  ]
+}

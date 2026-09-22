@@ -1,0 +1,56 @@
+{
+  "customers": {
+    "before_rows": 99441,
+    "after_rows": 99441,
+    "removed_rows": 0,
+    "notes": "Validated customer_id uniqueness and standardized state codes."
+  },
+  "geolocation": {
+    "before_rows": 1000163,
+    "after_rows": 19015,
+    "removed_rows": 981148,
+    "notes": "Aggregated duplicated geolocation coordinates by zip code prefix."
+  },
+  "orders": {
+    "before_rows": 99441,
+    "after_rows": 99441,
+    "removed_rows": 0,
+    "notes": "Parsed timestamps and standardized order_status values."
+  },
+  "order_items": {
+    "before_rows": 112650,
+    "after_rows": 112650,
+    "removed_rows": 0,
+    "notes": "Validated price > 0 and freight_value >= 0."
+  },
+  "order_payments": {
+    "before_rows": 103886,
+    "after_rows": 103886,
+    "removed_rows": 0,
+    "notes": "Filtered out negative payment values and standardized payment_type."
+  },
+  "order_reviews": {
+    "before_rows": 99224,
+    "after_rows": 98410,
+    "removed_rows": 814,
+    "notes": "Deduplicated review IDs and clipped scores between 1 and 5."
+  },
+  "products": {
+    "before_rows": 32951,
+    "after_rows": 32951,
+    "removed_rows": 0,
+    "notes": "Filled missing product categories with 'unspecified'."
+  },
+  "sellers": {
+    "before_rows": 3095,
+    "after_rows": 3095,
+    "removed_rows": 0,
+    "notes": "Standardized seller state codes and verified seller_id uniqueness."
+  },
+  "category_translation": {
+    "before_rows": 71,
+    "after_rows": 71,
+    "removed_rows": 0,
+    "notes": "Category translation mapping ingested cleanly."
+  }
+}
