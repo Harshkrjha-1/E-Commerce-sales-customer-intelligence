@@ -208,7 +208,7 @@ cd frontend
 npm install
 npm run dev
 ```
-Dashboard available at `http://localhost:5173/`.
+Dashboard available at `https://e-commerce-sales-customer-intellige.vercel.app/`.
 
 ---
 
