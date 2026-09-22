@@ -77,10 +77,10 @@ app.add_middleware(
 
 @app.middleware("http")
 async def vercel_routing_middleware(request: Request, call_next):
-    matched_path = request.headers.get("x-matched-path")
-    if matched_path and not matched_path.endswith(".py"):
-        clean_path = matched_path.split("?")[0]
-        request.scope["path"] = clean_path
+    path_param = request.query_params.get("__path")
+    if path_param is not None:
+        clean = "/" + path_param.lstrip("/") if path_param else "/"
+        request.scope["path"] = clean
     elif request.scope.get("path", "").startswith("/api/index.py"):
         remainder = request.scope["path"][len("/api/index.py"):]
         request.scope["path"] = remainder if remainder else "/"
