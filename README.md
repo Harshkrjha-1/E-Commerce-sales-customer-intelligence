@@ -5,11 +5,14 @@
 
 ---
 
-## 🚀 Live Demo & Access Links
+## ⚡ Single Vercel-Only Deployment Architecture
 
-- **Frontend Dashboard**: [http://localhost:5173/](http://localhost:5173/)
-- **Backend FastAPI Swagger Docs**: [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
-- **API Health Endpoint**: [http://127.0.0.1:8000/api/health](http://127.0.0.1:8000/api/health)
+This entire application is configured to deploy as a **Single Vercel Project** serving both the **React + Vite Frontend** and the **FastAPI Serverless Python Backend** under one unified domain.
+
+- **Vercel Project**: Single Monorepo Deployment
+- **Frontend Domain**: `https://YOUR-PROJECT.vercel.app/`
+- **Backend API Domain**: `https://YOUR-PROJECT.vercel.app/api/...`
+- **Zero External Backend / Zero Render Dependency**: Same-origin REST API calls natively served via Vercel `@vercel/python` serverless function (`api/index.py`).
 
 ---
 
@@ -17,7 +20,7 @@
 
 > [!NOTE]
 > To keep the GitHub repository lightweight, clean, and manageable, **large raw CSV files are ignored by Git** (`data/raw/*` in `.gitignore`).  
-> The project remains 100% reproducible by placing the downloaded Kaggle CSV files into `data/raw/`.
+> The project remains 100% reproducible locally and in production using the processed datasets (`data/processed/*.csv`) included in the repository.
 
 ### How to Download & Setup Dataset Locally:
 1. Download the official dataset directly from Kaggle:  
@@ -60,31 +63,18 @@ This platform addresses key business questions:
 
 ---
 
-## 🏗️ System Architecture
+## 🏗️ System Architecture & Vercel Flow
 
 ```
-Raw Olist CSVs (Downloaded locally to data/raw/)
-       │
-       ▼
-Data Ingestion & Cleaning (scripts/clean_data.py)
-       │
-       ▼
-Transformation & Aggregation (scripts/transform_data.py)
-       │
-       ▼
-Feature Engineering & RFM (scripts/feature_engineering.py)
-       │
-       ▼
-ML Model Training & Artifact (scripts/train_model.py -> models/customer_risk_model.pkl)
-       │
-       ▼
-Relational DB (backend/models.py -> SQLite / PostgreSQL)
-       │
-       ▼
-FastAPI REST API Layer (backend/main.py -> 16 Endpoints)
-       │
-       ▼
-React + Vite + TypeScript + Recharts Dashboard (frontend/src)
+Single Vercel Project Deployment (https://YOUR-PROJECT.vercel.app)
+ ├── / (All UI Routes) ─────────► React + Vite SPA Frontend (frontend/src)
+ └── /api/* (REST Endpoints) ──► Vercel Python Serverless Function (api/index.py -> backend/main.py)
+                                       │
+                                       ▼
+                             SQLAlchemy / SQLite (/tmp/ecommerce.db auto-seeded)
+                                       │
+                                       ▼
+                             Scikit-Learn ML Model (models/customer_risk_model.pkl)
 ```
 
 ---
@@ -93,9 +83,9 @@ React + Vite + TypeScript + Recharts Dashboard (frontend/src)
 
 - **Frontend**: React 18, Vite, TypeScript, Tailwind CSS, Recharts, Lucide Icons, React Router DOM.
 - **Backend API**: Python 3.10, FastAPI, Pydantic V2, Uvicorn, Pytest.
-- **Database Layer**: SQLAlchemy ORM, SQLite (local), PostgreSQL (production).
+- **Database Layer**: SQLAlchemy ORM, SQLite (local dev & Vercel `/tmp` serverless auto-seed).
 - **Machine Learning & Data**: Scikit-Learn, Pandas, NumPy, Joblib.
-- **Deployment**: Render (Backend & PostgreSQL), Vercel (Frontend), Docker.
+- **Deployment Platform**: Vercel (Single Unified Monorepo Project).
 
 ---
 
@@ -104,30 +94,40 @@ React + Vite + TypeScript + Recharts Dashboard (frontend/src)
 ```
 ecommerce-sales-customer-intelligence/
 │
-├── frontend/                  # React + Vite + TypeScript Frontend
+├── vercel.json                        # Root Vercel Monorepo deployment config (Python + Vite)
+├── requirements.txt                   # Root Python dependencies for Vercel build
+├── Dockerfile                         # Container configuration (Optional alternative)
+├── .env.example
+├── LICENSE
+├── README.md                          # Master documentation
+│
+├── api/
+│   └── index.py                       # Vercel Python serverless entrypoint importing backend.main:app
+│
+├── frontend/                          # React + Vite + TypeScript Frontend
 │   ├── src/
-│   │   ├── components/        # Navbar, Sidebar, KPICard, SkeletonLoader
-│   │   ├── pages/             # 9 Dashboard Navigation Pages
-│   │   ├── services/          # API Fetch Client
-│   │   └── types/             # TypeScript interfaces
+│   │   ├── components/                # Navbar, Sidebar, KPICard, SkeletonLoader
+│   │   ├── pages/                     # 9 Dashboard Navigation Pages
+│   │   ├── services/                  # API Fetch Client (/api relative path)
+│   │   └── types/                     # TypeScript interfaces
 │   ├── package.json
 │   ├── vite.config.ts
-│   └── vercel.json
+│   └── tsconfig.json
 │
-├── backend/                   # FastAPI Server Layer
-│   ├── main.py                # REST endpoints
-│   ├── database.py            # SQLAlchemy config
-│   ├── models.py              # Database ORM models
-│   ├── schemas.py             # Pydantic request/response schemas
-│   ├── seed_db.py             # Database seed script
-│   └── recommendation_engine.py # Prescriptive engine
+├── backend/                           # FastAPI Server Layer
+│   ├── main.py                        # REST endpoints (app variable)
+│   ├── database.py                    # SQLAlchemy config with Vercel /tmp auto-seed
+│   ├── models.py                      # Database ORM models
+│   ├── schemas.py                     # Pydantic request/response schemas
+│   ├── seed_db.py                     # Database seed script
+│   └── recommendation_engine.py       # Prescriptive engine
 │
-├── data/
-│   ├── raw/                   # Ignored by Git (.gitkeep retained)
-│   ├── processed/             # Clean analytical CSV tables
-│   └── data_dictionary.csv    # Schema dictionary (Committed to Git)
+├── data/                              # Data Directory Layer
+│   ├── raw/                           # Ignored by Git (.gitkeep retained)
+│   ├── processed/                     # Clean analytical CSV tables (Committed for Vercel)
+│   └── data_dictionary.csv            # Schema dictionary (Committed to Git)
 │
-├── notebooks/                 # 7 Analytical Jupyter Notebooks
+├── notebooks/                         # 7 Analytical Jupyter Notebooks
 │   ├── 01_data_understanding.ipynb
 │   ├── 02_data_cleaning.ipynb
 │   ├── 03_descriptive_analysis.ipynb
@@ -137,8 +137,8 @@ ecommerce-sales-customer-intelligence/
 │   └── 07_prescriptive_analysis.ipynb
 │
 ├── models/
-│   ├── customer_risk_model.pkl # Trained Scikit-Learn pipeline
-│   └── model_metadata.json    # Metrics & feature weights
+│   ├── customer_risk_model.pkl        # Trained Scikit-Learn pipeline
+│   └── model_metadata.json            # Metrics & feature weights
 │
 ├── scripts/
 │   ├── ingest_data.py
@@ -148,7 +148,7 @@ ecommerce-sales-customer-intelligence/
 │   ├── train_model.py
 │   └── generate_notebooks.py
 │
-├── docs/                      # Technical Documentation & Reports
+├── docs/                              # Technical Documentation & Reports
 │   ├── PROJECT_OVERVIEW.md
 │   ├── DATA_DICTIONARY.md
 │   ├── DATA_QUALITY.md
@@ -160,67 +160,55 @@ ecommerce-sales-customer-intelligence/
 │   └── FINAL_VERIFICATION.md
 │
 ├── tests/
-│   └── test_api.py            # Automated Pytest Suite
+│   └── test_api.py                    # Automated Pytest Suite
 │
 ├── presentation/
-│   └── project_content.md     # 15 Slide Capstone Presentation
+│   └── project_content.md             # 15 Slide Capstone Presentation
 │
-├── report/
-│   └── project_report_outline.md # 18 Section Capstone Report
-│
-├── Dockerfile                 # Backend Container configuration
-├── render.yaml                # Render Deployment Blueprint
-├── requirements.txt           # Python dependencies
-├── .env.example
-└── README.md
+└── report/
+    └── project_report_outline.md      # 18 Section Capstone Report
 ```
 
 ---
 
-## ⚡ Quick Start & Local Execution
+## 🚀 One-Click Vercel Deployment Guide
 
-### Prerequisites
-- Python 3.10+
-- Node.js 18+ & npm
+### Option 1: Deploy via Vercel Dashboard (Recommended)
+1. Log into your [Vercel Dashboard](https://vercel.com/dashboard).
+2. Click **Add New...** ➔ **Project**.
+3. Import your GitHub repository: `Harshkrjha-1/E-Commerce-sales-customer-intelligence`.
+4. Keep Root Directory as `./` (Root).
+5. Vercel automatically detects `vercel.json` and configures the Python backend + Vite frontend.
+6. Click **Deploy**.
 
-### 1. Run Data Pipeline & Seed Database
+### Option 2: Deploy via Vercel CLI
 ```bash
-# Ingest raw CSVs, clean, transform, engineer RFM features, train ML model, seed DB
-python scripts/clean_data.py
-python scripts/transform_data.py
-python scripts/feature_engineering.py
-python scripts/train_model.py
-python backend/seed_db.py
+npm install -g vercel
+vercel
 ```
 
-### 2. Launch FastAPI Backend API
+---
+
+## ⚡ Local Development & Testing
+
+### 1. Test Backend APIs Locally
+```bash
+pytest tests/test_api.py
+```
+
+### 2. Launch Local FastAPI Server
 ```bash
 uvicorn backend.main:app --host 127.0.0.1 --port 8000
 ```
-Swagger UI will be live at `http://127.0.0.1:8000/docs`.
+Swagger UI available at `http://127.0.0.1:8000/docs`.
 
-### 3. Launch React Dashboard Frontend
+### 3. Launch Local React Frontend
 ```bash
 cd frontend
 npm install
 npm run dev
 ```
-Open `http://localhost:5173/` in your browser.
-
----
-
-## 🧪 Testing
-
-Run backend unit and integration test suite:
-```bash
-pytest tests/test_api.py
-```
-
-Run frontend build verification:
-```bash
-cd frontend
-npm run build
-```
+Dashboard available at `http://localhost:5173/`.
 
 ---
 

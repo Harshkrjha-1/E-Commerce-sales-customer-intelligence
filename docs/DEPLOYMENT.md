@@ -1,32 +1,70 @@
-# Deployment Guide
+# Vercel Deployment Guide
 
-## Production Architecture
-- **Frontend**: Deploy to Vercel as a Static SPA.
-- **Backend API**: Deploy to Render Web Service using Docker or Python.
-- **Database**: Deploy to Render PostgreSQL.
+## Production Monorepo Architecture
+- **Single Vercel Project**: The entire application (React + Vite Frontend + FastAPI Serverless Python Backend) deploys to a single Vercel project under one public domain.
+- **Frontend URL**: `https://YOUR-PROJECT.vercel.app/`
+- **Backend API URL**: `https://YOUR-PROJECT.vercel.app/api/...`
 
-## Environment Variables Configuration
+## Vercel Configuration (`vercel.json`)
+The root `vercel.json` configures the Vercel builders and routes:
 
-### Backend (.env)
-```env
-DATABASE_URL=postgresql://user:pass@render-db-host:5432/olist_db
-PORT=8000
-HOST=0.0.0.0
-CORS_ORIGINS=https://your-frontend-app.vercel.app
+```json
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "api/index.py",
+      "use": "@vercel/python"
+    },
+    {
+      "src": "frontend/package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "dist"
+      }
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "api/index.py"
+    },
+    {
+      "handle": "filesystem"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "frontend/index.html"
+    }
+  ]
+}
 ```
 
-### Frontend (.env)
-```env
-VITE_API_BASE_URL=https://olist-analytics-backend.onrender.com/api
+## Vercel Serverless Function Entrypoint (`api/index.py`)
+```python
+import os
+import sys
+
+root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if root_dir not in sys.path:
+    sys.path.insert(0, root_dir)
+
+from backend.main import app
 ```
 
-## Dataset & Git Storage Policy
-Large raw CSV files are excluded from Git repository commits via `.gitignore` (`data/raw/*`).
-To reproduce the data pipeline on any machine:
-1. Download the raw CSVs from [Kaggle Olist Dataset](https://www.kaggle.com/datasets/olistbr/brazilian-ecommerce).
-2. Save raw files into `data/raw/`.
-3. Run `python scripts/clean_data.py && python scripts/transform_data.py && python scripts/feature_engineering.py && python scripts/train_model.py && python backend/seed_db.py`.
+## Database Handling in Serverless Environment
+- No external database service (Render/Postgres) is required.
+- If no external `DATABASE_URL` is set, `backend/database.py` automatically initializes and seeds a high-performance SQLite database in `/tmp/ecommerce.db` using the preprocessed CSV datasets (`data/processed/*.csv`) on serverless cold-start.
 
-## Local Development Execution
-1. **Backend**: `uvicorn backend.main:app --port 8000`
-2. **Frontend**: `npm run dev` (in `frontend/`)
+## Local Testing Commands
+```bash
+# 1. Run pytest suite
+pytest tests/test_api.py
+
+# 2. Test FastAPI server
+uvicorn backend.main:app --port 8000
+
+# 3. Test React build
+cd frontend
+npm run build
+```
