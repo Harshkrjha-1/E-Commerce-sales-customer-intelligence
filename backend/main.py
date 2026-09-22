@@ -15,7 +15,7 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if BASE_DIR not in sys.path:
     sys.path.insert(0, BASE_DIR)
 
-from fastapi import FastAPI, Depends, Query, HTTPException
+from fastapi import FastAPI, APIRouter, Depends, Query, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from sqlalchemy import func
@@ -43,7 +43,10 @@ from backend.schemas import (
 )
 from backend.recommendation_engine import generate_prescriptive_recommendations
 
-Base.metadata.create_all(bind=engine)
+try:
+    Base.metadata.create_all(bind=engine)
+except Exception as e:
+    print(f"Database init warning: {e}")
 
 app = FastAPI(
     title="Brazilian E-Commerce Analytics & ML API",
@@ -89,8 +92,9 @@ if os.path.exists(METADATA_PATH):
     except Exception as e:
         print(f"Warning: Failed to load model metadata: {e}")
 
+router = APIRouter()
 
-@app.get("/api/health", tags=["System"])
+@router.get("/health", tags=["System"])
 def health_check():
     return {
         "status": "healthy",
@@ -100,7 +104,7 @@ def health_check():
     }
 
 
-@app.get("/api/kpis", response_model=KPISummaryResponse, tags=["Analytics"])
+@router.get("/kpis", response_model=KPISummaryResponse, tags=["Analytics"])
 def get_kpi_summary(
     state: Optional[str] = None,
     category: Optional[str] = None,
@@ -159,31 +163,31 @@ def get_kpi_summary(
     )
 
 
-@app.get("/api/sales/monthly", response_model=List[MonthlySalesResponse], tags=["Analytics"])
+@router.get("/sales/monthly", response_model=List[MonthlySalesResponse], tags=["Analytics"])
 def get_monthly_sales(db: Session = Depends(get_db)):
     sales = db.query(MonthlySales).order_by(MonthlySales.year_month.asc()).all()
     return sales
 
 
-@app.get("/api/sales/categories", response_model=List[CategoryPerformanceResponse], tags=["Analytics"])
+@router.get("/sales/categories", response_model=List[CategoryPerformanceResponse], tags=["Analytics"])
 def get_category_performance(limit: int = Query(15, ge=1, le=100), db: Session = Depends(get_db)):
     cats = db.query(CategoryPerformance).order_by(CategoryPerformance.gmv.desc()).limit(limit).all()
     return cats
 
 
-@app.get("/api/sales/regions", response_model=List[StatePerformanceResponse], tags=["Analytics"])
+@router.get("/sales/regions", response_model=List[StatePerformanceResponse], tags=["Analytics"])
 def get_regional_performance(db: Session = Depends(get_db)):
     states = db.query(StatePerformance).order_by(StatePerformance.gmv.desc()).all()
     return states
 
 
-@app.get("/api/sellers/top", response_model=List[SellerPerformanceResponse], tags=["Analytics"])
+@router.get("/sellers/top", response_model=List[SellerPerformanceResponse], tags=["Analytics"])
 def get_top_sellers(limit: int = Query(20, ge=1, le=100), db: Session = Depends(get_db)):
     sellers = db.query(SellerPerformance).order_by(SellerPerformance.gmv.desc()).limit(limit).all()
     return sellers
 
 
-@app.get("/api/customers/segments", tags=["Analytics"])
+@router.get("/customers/segments", tags=["Analytics"])
 def get_customer_segments_summary(db: Session = Depends(get_db)):
     segments = db.query(
         CustomerRFM.rfm_segment,
@@ -205,7 +209,7 @@ def get_customer_segments_summary(db: Session = Depends(get_db)):
     ]
 
 
-@app.get("/api/customers/rfm", response_model=List[CustomerRFMResponse], tags=["Analytics"])
+@router.get("/customers/rfm", response_model=List[CustomerRFMResponse], tags=["Analytics"])
 def get_customers_rfm_table(
     segment: Optional[str] = None,
     risk_level: Optional[str] = None,
@@ -223,7 +227,7 @@ def get_customers_rfm_table(
     return custs
 
 
-@app.get("/api/delivery/performance", tags=["Analytics"])
+@router.get("/delivery/performance", tags=["Analytics"])
 def get_delivery_performance(db: Session = Depends(get_db)):
     overall = db.query(
         func.avg(Order.delivery_days).label("avg_delivery"),
@@ -251,7 +255,7 @@ def get_delivery_performance(db: Session = Depends(get_db)):
     }
 
 
-@app.get("/api/risk/summary", tags=["Predictions"])
+@router.get("/risk/summary", tags=["Predictions"])
 def get_risk_summary(db: Session = Depends(get_db)):
     risk_counts = db.query(
         CustomerRFM.churn_risk_level,
@@ -267,7 +271,7 @@ def get_risk_summary(db: Session = Depends(get_db)):
     }
 
 
-@app.post("/api/predict/customer-risk", response_model=CustomerPredictResponse, tags=["Predictions"])
+@router.post("/predict/customer-risk", response_model=CustomerPredictResponse, tags=["Predictions"])
 def predict_customer_risk(req: CustomerPredictRequest):
     if ml_pipeline is None:
         raise HTTPException(status_code=503, detail="ML Model not loaded on server.")
@@ -313,19 +317,19 @@ def predict_customer_risk(req: CustomerPredictRequest):
     )
 
 
-@app.get("/api/recommendations", response_model=List[RecommendationResponse], tags=["Prescriptive Analytics"])
+@router.get("/recommendations", response_model=List[RecommendationResponse], tags=["Prescriptive Analytics"])
 def get_recommendations(db: Session = Depends(get_db)):
     return generate_prescriptive_recommendations(db)
 
 
-@app.get("/api/metadata", response_model=ModelMetadataResponse, tags=["Metadata"])
+@router.get("/metadata", response_model=ModelMetadataResponse, tags=["Metadata"])
 def get_metadata():
     if model_metadata is None:
         raise HTTPException(status_code=404, detail="Model metadata file not found.")
     return model_metadata
 
 
-@app.get("/api/data-quality", tags=["Data Quality"])
+@router.get("/data-quality", tags=["Data Quality"])
 def get_data_quality_report():
     docs_path = os.path.join(BASE_DIR, "docs", "cleaning_summary.json")
     if os.path.exists(docs_path):
@@ -337,3 +341,7 @@ def get_data_quality_report():
             "cleaning_summary": summary
         }
     return {"status": "Verified", "score": 98.5, "cleaning_summary": {}}
+
+# Include router for both root and /api prefixes so Vercel function matching never fails
+app.include_router(router)
+app.include_router(router, prefix="/api")
