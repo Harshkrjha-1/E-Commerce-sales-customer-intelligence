@@ -7,6 +7,7 @@ Supports SQLite (local dev & Vercel serverless /tmp auto-seed) and PostgreSQL
 import os
 import sys
 import sqlite3
+import tempfile
 import pandas as pd
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
@@ -18,14 +19,15 @@ DATABASE_URL = os.getenv("DATABASE_URL")
 
 if not DATABASE_URL:
     root_db = os.path.join(BASE_DIR, "ecommerce.db")
-    tmp_db = os.path.join("/tmp", "ecommerce.db")
+    tmp_dir = tempfile.gettempdir()
+    tmp_db = os.path.join(tmp_dir, "ecommerce.db")
     
     if os.path.exists(root_db) and os.path.getsize(root_db) > 0:
         db_path = root_db
     else:
         db_path = tmp_db
         if not os.path.exists(tmp_db) or os.path.getsize(tmp_db) == 0:
-            os.makedirs("/tmp", exist_ok=True)
+            os.makedirs(tmp_dir, exist_ok=True)
             conn = sqlite3.connect(tmp_db)
             table_map = {
                 "sales_monthly.csv": "sales_monthly",

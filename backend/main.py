@@ -16,7 +16,7 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if BASE_DIR not in sys.path:
     sys.path.insert(0, BASE_DIR)
 
-from fastapi import FastAPI, APIRouter, Depends, Query, HTTPException
+from fastapi import FastAPI, APIRouter, Depends, Query, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
@@ -54,7 +54,8 @@ except Exception as e:
 app = FastAPI(
     title="Brazilian E-Commerce Analytics & ML API",
     description="Full-stack Data Analytics & Predictive Customer Risk Platform API using Olist Dataset",
-    version="1.0.0"
+    version="1.0.0",
+    redirect_slashes=False
 )
 
 # CORS configuration
@@ -73,6 +74,18 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+@app.middleware("http")
+async def vercel_routing_middleware(request: Request, call_next):
+    matched_path = request.headers.get("x-matched-path")
+    if matched_path and not matched_path.endswith(".py"):
+        clean_path = matched_path.split("?")[0]
+        request.scope["path"] = clean_path
+    elif request.scope.get("path", "").startswith("/api/index.py"):
+        remainder = request.scope["path"][len("/api/index.py"):]
+        request.scope["path"] = remainder if remainder else "/"
+        
+    return await call_next(request)
 
 # Load trained ML model & metadata
 MODEL_PATH = os.path.join(BASE_DIR, "models", "customer_risk_model.pkl")
@@ -96,6 +109,16 @@ if os.path.exists(METADATA_PATH):
         print(f"Warning: Failed to load model metadata: {e}")
 
 router = APIRouter()
+
+@router.get("/", tags=["System"])
+def api_root():
+    return {
+        "status": "healthy",
+        "service": "Olist E-Commerce Analytics API",
+        "version": "1.0.0",
+        "database": "connected",
+        "ml_model_loaded": ml_pipeline is not None
+    }
 
 @router.get("/health", tags=["System"])
 def health_check():
@@ -349,19 +372,19 @@ def get_data_quality_report():
 app.include_router(router)
 app.include_router(router, prefix="/api")
 
-# Serve React static assets from frontend/dist
+# Serve React static assets from frontend/dist (for local monolithic runs)
 DIST_DIR = os.path.join(BASE_DIR, "frontend", "dist")
 ASSETS_DIR = os.path.join(DIST_DIR, "assets")
 
-if os.path.exists(ASSETS_DIR):
-    app.mount("/assets", StaticFiles(directory=ASSETS_DIR), name="assets")
+try:
+    if os.path.exists(ASSETS_DIR):
+        app.mount("/assets", StaticFiles(directory=ASSETS_DIR), name="assets")
+except Exception as e:
+    print(f"Static assets mount note: {e}")
 
-# Catch-all route to serve React SPA index.html or static root files
+# Catch-all route to serve React SPA index.html or fallback 404
 @app.get("/{full_path:path}", include_in_schema=False)
-def serve_frontend_spa(full_path: str):
-    if full_path.startswith("api/"):
-        raise HTTPException(status_code=404, detail="API endpoint not found")
-        
+def serve_fallback(full_path: str):
     target_file = os.path.join(DIST_DIR, full_path)
     if os.path.isfile(target_file):
         return FileResponse(target_file)
@@ -370,4 +393,4 @@ def serve_frontend_spa(full_path: str):
     if os.path.exists(index_file):
         return FileResponse(index_file)
         
-    return HTMLResponse("<html><body><h2>Olist E-Commerce Analytics Platform</h2><p>Frontend is building...</p></body></html>")
+    raise HTTPException(status_code=404, detail="Not Found")
