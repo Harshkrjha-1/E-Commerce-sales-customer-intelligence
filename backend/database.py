@@ -41,6 +41,8 @@ if not DATABASE_URL:
                 csv_path = os.path.join(PROCESSED_DIR, csv_name)
                 if os.path.exists(csv_path):
                     df = pd.read_csv(csv_path)
+                    if "id" not in df.columns:
+                        df.insert(0, "id", range(1, len(df) + 1))
                     if table_name == "orders":
                         date_cols = [
                             "order_purchase_timestamp", "order_approved_at",
